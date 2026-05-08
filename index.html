@@ -421,7 +421,7 @@
 </div>
 
 <script>
-const API  = 'http://127.0.0.1:8001/api/v1/chatbot/test';
+const API  = 'http://103.12.199.66/api/v1/chatbot/test';
 const MAX  = 14;
 const SK   = 'must_v3';
 let token  = '', phone = '', hist = [];
@@ -583,7 +583,7 @@ async function clearMemoryAPI(){
   btn.disabled=true; txt.textContent='Clearing…';
   try{
     const encodedPhone=encodeURIComponent(phone);
-    const res=await fetch(`http://127.0.0.1:8001/api/v1/chatbot/memory/${encodedPhone}`,{
+    const res=await fetch(`http://103.12.199.66/api/v1/chatbot/memory/${encodedPhone}`,{
       method:'DELETE',
       headers:{'Authorization':'Bearer '+token}
     });

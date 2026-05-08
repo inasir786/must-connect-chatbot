@@ -283,11 +283,6 @@
     .sbtn:active{transform:scale(.96)}
     .sbtn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
   </style>
-  <script>
-    window._env_ = {
-      API_BASE_URL: "%%API_BASE_URL%%"
-    };
-  </script>
 </head>
 <body>
 
@@ -426,7 +421,10 @@
 </div>
 
 <script>
-const API = (window._env_ && window._env_.API_BASE_URL ? window._env_.API_BASE_URL : 'http://103.12.199.66/api/v1/chatbot') + '/test';
+const CONFIG = {
+  BASE_URL: 'http://103.12.199.66',
+};
+const API = CONFIG.BASE_URL + '/api/v1/chatbot/test';
 const MAX  = 14;
 const SK   = 'must_v3';
 let token  = '', phone = '', hist = [];
@@ -588,7 +586,7 @@ async function clearMemoryAPI(){
   btn.disabled=true; txt.textContent='Clearing…';
   try{
     const encodedPhone=encodeURIComponent(phone);
-    const res=await fetch(`${window._env_ && window._env_.API_BASE_URL ? window._env_.API_BASE_URL : 'http://103.12.199.66/api/v1/chatbot'}/memory/${encodedPhone}`,{
+    const res=await fetch(`${CONFIG.BASE_URL}/api/v1/chatbot/memory/${encodedPhone}`,{
       method:'DELETE',
       headers:{'Authorization':'Bearer '+token}
     });

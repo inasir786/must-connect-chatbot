@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MUST Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --bg:#07090f;
+      --surface:#0e1117;
+      --surface2:#151920;
+      --surface3:#1c2230;
+      --border:#1f2738;
+      --border2:#2a3450;
+      --accent:#00ffb3;
+      --accent2:#0099ff;
+      --accent-glow:rgba(0,255,179,0.15);
+      --text:#dce8f5;
+      --text-muted:#4a5770;
+      --text-dim:#7a8aa0;
+      --user-bg:#0d1f3c;
+      --user-border:rgba(0,153,255,0.25);
+      --bot-bg:#0e1117;
+      --bot-border:#1f2738;
+      --danger:#ff4060;
+    }
+
+    html,body{height:100%;overflow:hidden}
+    body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);display:flex;align-items:stretch}
+
+    /* ═══ LOGIN SCREEN ═══ */
+    #loginScreen{
+      position:fixed;inset:0;background:var(--bg);
+      display:flex;align-items:center;justify-content:center;
+      z-index:100;animation:sIn .5s ease;
+    }
+    #loginScreen.hidden{animation:sOut .4s ease forwards;pointer-events:none}
+    @keyframes sIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+    @keyframes sOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.03)}}
+
+    .login-card{width:100%;max-width:430px;padding:0 24px}
+
+    .logo-badge{
+      display:inline-flex;align-items:center;gap:10px;
+      background:var(--surface);border:1px solid var(--border2);
+      border-radius:12px;padding:10px 16px;margin-bottom:20px;
+    }
+    .logo-icon{
+      width:32px;height:32px;border-radius:8px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      display:flex;align-items:center;justify-content:center;
+      font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#000;
+    }
+    .logo-text{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);letter-spacing:.05em}
+
+    .login-h1{
+      font-family:'Syne',sans-serif;font-size:30px;font-weight:800;line-height:1.15;
+      background:linear-gradient(135deg,var(--text) 40%,var(--accent));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      margin-bottom:6px;
+    }
+    .login-sub{font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:24px}
+
+    .steps{display:flex;gap:6px;margin-bottom:24px}
+    .sd{height:3px;border-radius:2px;transition:all .3s}
+    .sd.active{background:var(--accent);width:28px}
+    .sd.done{background:var(--accent2);width:16px}
+    .sd.idle{background:var(--border2);width:16px}
+
+    .field-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+    .field-label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);font-weight:500}
+    .field-wrap{position:relative}
+    .fi{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
+
+    .linput{
+      width:100%;background:var(--surface);border:1px solid var(--border2);
+      border-radius:11px;padding:12px 13px 12px 40px;
+      color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;
+      outline:none;transition:border-color .2s,box-shadow .2s;
+    }
+    .linput:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+    .linput::placeholder{color:var(--text-muted)}
+    .linput.token{padding-right:42px;letter-spacing:.04em}
+
+    .tvis{
+      position:absolute;right:11px;top:50%;transform:translateY(-50%);
+      background:none;border:none;color:var(--text-muted);cursor:pointer;
+      padding:4px;border-radius:6px;transition:color .2s;
+    }
+    .tvis:hover{color:var(--accent)}
+
+    .lbtn{
+      width:100%;padding:13px;background:var(--accent);border:none;border-radius:11px;
+      font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
+      color:#000;letter-spacing:.05em;cursor:pointer;margin-top:6px;
+      transition:all .2s;position:relative;overflow:hidden;
+    }
+    .lbtn::before{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+      transform:translateX(-100%);transition:transform .5s;
+    }
+    .lbtn:hover::before{transform:translateX(100%)}
+    .lbtn:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,255,179,.3)}
+    .lbtn:active{transform:translateY(0)}
+    .lbtn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+    .lerr{
+      background:rgba(255,64,96,.1);border:1px solid rgba(255,64,96,.3);
+      border-radius:9px;padding:9px 13px;font-size:11px;color:var(--danger);
+      margin-bottom:13px;display:none;
+    }
+    .lerr.show{display:block}
+
+    .saved-pill{
+      display:inline-flex;align-items:center;gap:7px;
+      background:rgba(0,255,179,.07);border:1px solid rgba(0,255,179,.2);
+      border-radius:8px;padding:6px 11px;font-size:10px;color:var(--accent);
+      margin-bottom:16px;cursor:pointer;transition:all .18s;
+    }
+    .saved-pill:hover{background:rgba(0,255,179,.14)}
+
+    .back-link{
+      background:none;border:none;color:var(--text-muted);
+      font-family:'JetBrains Mono',monospace;font-size:10px;
+      cursor:pointer;letter-spacing:.05em;margin-top:9px;display:block;
+      text-align:center;transition:color .18s;
+    }
+    .back-link:hover{color:var(--text)}
+
+    /* ═══ APP ═══ */
+    #app{display:none;width:100%;height:100%}
+    #app.show{display:flex}
+
+    /* Sidebar */
+    .sidebar{
+      width:272px;min-width:272px;background:var(--surface);
+      border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;
+    }
+    .sb-head{padding:18px 15px 13px;border-bottom:1px solid var(--border)}
+    .sb-top{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+    .sb-av{
+      width:34px;height:34px;border-radius:9px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      display:flex;align-items:center;justify-content:center;
+      font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:#000;flex-shrink:0;
+    }
+    .sb-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
+    .sb-sub2{font-size:8px;color:var(--text-muted);letter-spacing:.1em;margin-top:1px}
+    .sess-row{display:flex;align-items:center;gap:6px}
+    .sess-phone{font-size:10px;color:var(--accent2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .logout-btn{
+      background:none;border:1px solid var(--border2);border-radius:7px;
+      padding:4px 8px;color:var(--text-muted);
+      font-family:'JetBrains Mono',monospace;font-size:9px;cursor:pointer;
+      letter-spacing:.05em;transition:all .18s;white-space:nowrap;
+    }
+    .logout-btn:hover{border-color:var(--danger);color:var(--danger)}
+
+    .sb-label{
+      font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+      color:var(--text-muted);padding:11px 15px 5px;border-bottom:1px solid var(--border);
+    }
+    .hlist{flex:1;overflow-y:auto;padding:7px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+    .hlist::-webkit-scrollbar{width:3px}
+    .hlist::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+    .hi{
+      padding:9px 11px;border-radius:9px;cursor:pointer;
+      border:1px solid transparent;transition:all .16s;margin-bottom:3px;position:relative;
+    }
+    .hi:hover{background:var(--surface2);border-color:var(--border)}
+    .hi.active{background:var(--accent-glow);border-color:rgba(0,255,179,.3)}
+    .hi-ph{font-size:9px;color:var(--accent2);margin-bottom:2px;letter-spacing:.04em}
+    .hi-q{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+    .hi-a{font-size:10px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hi-t{font-size:9px;color:var(--text-muted);margin-top:4px}
+    .hi-dot{width:5px;height:5px;background:var(--accent);border-radius:50%;position:absolute;top:10px;right:9px;box-shadow:0 0 6px var(--accent)}
+
+    .sb-foot{padding:7px;border-top:1px solid var(--border)}
+    .clr-btn{
+      width:100%;padding:8px;background:transparent;border:1px solid var(--border);
+      border-radius:8px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;
+      font-size:9px;cursor:pointer;letter-spacing:.08em;transition:all .18s;
+    }
+    .clr-btn:hover{border-color:var(--danger);color:var(--danger)}
+    .api-clr{border-color:rgba(255,64,96,.35);color:var(--danger)}
+    .api-clr:hover{background:rgba(255,64,96,.08);border-color:var(--danger)}
+    .api-clr:disabled{opacity:.45;cursor:not-allowed}
+
+    /* Chat main */
+    .chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .chat-top{
+      padding:14px 22px;border-bottom:1px solid var(--border);
+      background:var(--surface);display:flex;align-items:center;gap:11px;
+    }
+    .ct-av{
+      width:36px;height:36px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      display:flex;align-items:center;justify-content:center;
+      font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#000;
+    }
+    .ct-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+    .ct-status{font-size:9px;color:var(--accent);letter-spacing:.1em;margin-top:1px}
+    .ct-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+    .tok-pill{
+      display:flex;align-items:center;gap:6px;
+      background:var(--surface2);border:1px solid var(--border2);
+      border-radius:8px;padding:5px 10px;font-size:9px;color:var(--text-muted);
+    }
+    .tok-pill strong{color:var(--accent);font-weight:500}
+    .live{width:7px;height:7px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent);animation:lp 2s infinite}
+    @keyframes lp{0%,100%{opacity:1}50%{opacity:.2}}
+
+    .msgs{
+      flex:1;overflow-y:auto;padding:22px 18px;
+      display:flex;flex-direction:column;gap:13px;
+      scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+    }
+    .msgs::-webkit-scrollbar{width:3px}
+    .msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+    .mw{display:flex;flex-direction:column;max-width:70%;animation:mi .26s ease}
+    @keyframes mi{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+    .mw.user{align-self:flex-end;align-items:flex-end}
+    .mw.bot{align-self:flex-start;align-items:flex-start}
+    .mwho{font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px;padding:0 3px}
+    .mw.user .mwho{color:var(--accent2)}
+    .mw.bot  .mwho{color:var(--accent)}
+    .bbl{padding:11px 15px;border-radius:13px;font-size:12.5px;line-height:1.7;word-break:break-word}
+    .mw.user .bbl{background:var(--user-bg);border:1px solid var(--user-border);border-bottom-right-radius:3px}
+    .mw.bot  .bbl{background:var(--bot-bg);border:1px solid var(--bot-border);border-bottom-left-radius:3px}
+    .mfoot{display:flex;align-items:center;gap:6px;margin-top:4px;padding:0 3px;font-size:9px;color:var(--text-muted)}
+    .bdg{padding:2px 7px;border-radius:20px;font-size:8px;letter-spacing:.06em}
+    .bdg-ai{background:rgba(0,255,179,.1);color:var(--accent);border:1px solid rgba(0,255,179,.25)}
+    .bdg-fb{background:rgba(255,64,96,.1);color:var(--danger);border:1px solid rgba(255,64,96,.25)}
+
+    .empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:var(--text-muted)}
+    .empty-chat p{font-size:11px;letter-spacing:.06em}
+    .empty-chat svg{opacity:.13}
+
+    .chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 18px 10px}
+    .chip{
+      padding:5px 11px;border-radius:20px;background:var(--surface2);
+      border:1px solid var(--border2);font-size:10px;color:var(--text-dim);
+      cursor:pointer;transition:all .15s;letter-spacing:.03em;
+    }
+    .chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+
+    .izone{padding:10px 18px 16px;border-top:1px solid var(--border);background:var(--surface)}
+    .ebar{
+      background:rgba(255,64,96,.1);border:1px solid rgba(255,64,96,.3);
+      border-radius:8px;padding:7px 12px;font-size:11px;color:var(--danger);
+      margin-bottom:8px;display:none;
+    }
+    .ebar.show{display:block}
+    .trow{display:none;align-items:center;gap:7px;color:var(--text-muted);font-size:10px;margin-bottom:7px}
+    .trow.show{display:flex}
+    .dots span{display:inline-block;width:5px;height:5px;background:var(--accent);border-radius:50%;animation:db 1.2s infinite}
+    .dots span:nth-child(2){animation-delay:.2s}
+    .dots span:nth-child(3){animation-delay:.4s}
+    @keyframes db{0%,80%,100%{opacity:.15}40%{opacity:1}}
+
+    .irow{display:flex;align-items:flex-end;gap:9px}
+    .mta{
+      flex:1;background:var(--surface2);border:1px solid var(--border2);
+      border-radius:12px;padding:11px 15px;color:var(--text);
+      font-family:'JetBrains Mono',monospace;font-size:12.5px;
+      outline:none;resize:none;min-height:44px;max-height:100px;line-height:1.5;
+      transition:border-color .18s,box-shadow .18s;
+    }
+    .mta:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+    .mta::placeholder{color:var(--text-muted)}
+    .sbtn{
+      width:44px;height:44px;flex-shrink:0;background:var(--accent);border:none;
+      border-radius:12px;display:flex;align-items:center;justify-content:center;
+      cursor:pointer;color:#000;transition:all .18s;
+    }
+    .sbtn:hover{transform:scale(1.06);box-shadow:0 6px 18px rgba(0,255,179,.35)}
+    .sbtn:active{transform:scale(.96)}
+    .sbtn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+  </style>
+</head>
+<body>
+
+<!-- ══════ STEP 1 & 2: LOGIN ══════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="logo-badge">
+      <div class="logo-icon">M</div>
+      <div class="logo-text">MUST UNIVERSITY</div>
+    </div>
+
+    <div class="login-h1">Connect to<br/>Chatbot API</div>
+    <div class="login-sub">Two quick steps — enter your Bearer token,<br/>then your student phone number.</div>
+
+    <div class="steps">
+      <div class="sd active" id="sd1"></div>
+      <div class="sd idle"   id="sd2"></div>
+    </div>
+
+    <!-- Saved session shortcut -->
+    <div id="savedPill" class="saved-pill" style="display:none" onclick="resumeSession()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span id="savedPillText">Resume saved session</span>
+    </div>
+
+    <div class="lerr" id="lerr"></div>
+
+    <!-- STEP 1: Token -->
+    <div id="stepA">
+      <div class="field-group">
+        <div class="field-label">Step 1 — Bearer Token</div>
+        <div class="field-wrap">
+          <div class="fi">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <input class="linput token" id="tokenInp" type="password" placeholder="Paste your Bearer token here…"/>
+          <button class="tvis" onclick="toggleVis()" title="Show/hide token">
+            <svg id="eyeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <button class="lbtn" onclick="goToStep2()">Continue to Step 2 →</button>
+    </div>
+
+    <!-- STEP 2: Phone -->
+    <div id="stepB" style="display:none">
+      <div class="field-group">
+        <div class="field-label">Step 2 — Student Phone Number</div>
+        <div class="field-wrap">
+          <div class="fi">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.81a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg>
+          </div>
+          <input class="linput" id="phoneInp" type="text" placeholder="+923411731277" value="+923411731277"/>
+        </div>
+      </div>
+      <button class="lbtn" id="startBtn" onclick="startSession()">
+        <span id="startTxt">Start Chat Session →</span>
+      </button>
+      <button class="back-link" onclick="goToStep1()">← Back: change token</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MAIN APP ══════ -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="sb-top">
+        <div class="sb-av">M</div>
+        <div>
+          <div class="sb-name">MUST Bot</div>
+          <div class="sb-sub2">UNIVERSITY ASSISTANT</div>
+        </div>
+      </div>
+      <div class="sess-row">
+        <div class="sess-phone" id="sessPhone">—</div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+    <div class="sb-label">History · last 14</div>
+    <div class="hlist" id="hlist"></div>
+    <div class="sb-foot">
+      <button class="clr-btn api-clr" id="apiClrBtn" onclick="clearMemoryAPI()">
+        <span id="apiClrTxt">🗑 Clear Server Memory</span>
+      </button>
+      <button class="clr-btn" onclick="clearLocalHist()" style="margin-top:5px">⌫ Clear Local History</button>
+    </div>
+  </aside>
+
+  <div class="chat-main">
+    <div class="chat-top">
+      <div class="ct-av">M</div>
+      <div>
+        <div class="ct-name">MUST Chatbot</div>
+        <div class="ct-status">ONLINE · AUTHENTICATED</div>
+      </div>
+      <div class="ct-right">
+        <div class="tok-pill">🔑 Token: <strong id="tokPrev">…</strong></div>
+        <div class="live"></div>
+      </div>
+    </div>
+
+    <div class="msgs" id="msgs">
+      <div class="empty-chat" id="emptyChat">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <p>Send a message to begin</p>
+      </div>
+    </div>
+
+    <div class="chips">
+      <div class="chip" onclick="qs('admission fee')">💰 Admission Fee</div>
+      <div class="chip" onclick="qs('BBA programs available')">🎓 BBA Programs</div>
+      <div class="chip" onclick="qs('scholarship details')">📋 Scholarships</div>
+      <div class="chip" onclick="qs('hostel facilities')">🏠 Hostel</div>
+    </div>
+
+    <div class="izone">
+      <div class="ebar" id="ebar"></div>
+      <div class="trow" id="trow">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span>Bot is thinking…</span>
+      </div>
+      <div class="irow">
+        <textarea class="mta" id="mta" rows="1" placeholder="Ask about fees, programs, admissions…"></textarea>
+        <button class="sbtn" id="sbtn" onclick="send()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API  = 'http://127.0.0.1:8001/api/v1/chatbot/test';
+const MAX  = 14;
+const SK   = 'must_v3';
+let token  = '', phone = '', hist = [];
+
+// ── Boot ──
+(function init() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SK+'_sess') || 'null');
+    if (s?.t && s?.p) {
+      document.getElementById('savedPill').style.display = 'inline-flex';
+      document.getElementById('savedPillText').textContent = 'Resume: ' + s.p.slice(0,9) + '…';
+    }
+  } catch(e){}
+  hist = loadHist();
+})();
+
+function resumeSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SK+'_sess'));
+    if (s?.t && s?.p) {
+      document.getElementById('tokenInp').value = s.t;
+      document.getElementById('phoneInp').value = s.p;
+      startSession();
+    }
+  } catch(e){}
+}
+
+// ── Login steps ──
+function toggleVis() {
+  const inp = document.getElementById('tokenInp');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function goToStep2() {
+  const t = document.getElementById('tokenInp').value.trim();
+  if (!t) { lerr('Please paste your Bearer token.'); return; }
+  clerr();
+  document.getElementById('stepA').style.display = 'none';
+  document.getElementById('stepB').style.display = 'block';
+  document.getElementById('sd1').className = 'sd done';
+  document.getElementById('sd2').className = 'sd active';
+  document.getElementById('phoneInp').focus();
+}
+
+function goToStep1() {
+  document.getElementById('stepB').style.display = 'none';
+  document.getElementById('stepA').style.display = 'block';
+  document.getElementById('sd1').className = 'sd active';
+  document.getElementById('sd2').className = 'sd idle';
+  clerr();
+}
+
+async function startSession() {
+  const t = document.getElementById('tokenInp').value.trim();
+  const p = document.getElementById('phoneInp').value.trim();
+  if (!t || !p) { lerr('Both token and phone are required.'); return; }
+
+  const btn = document.getElementById('startBtn');
+  const txt = document.getElementById('startTxt');
+  btn.disabled = true; txt.textContent = 'Connecting…';
+
+  try {
+    const res = await fetch(API, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},
+      body: JSON.stringify({student_phone:p, message:'hi'})
+    });
+
+    if (res.status===403){lerr('403 Forbidden — Bearer token rejected. Check your token.');btn.disabled=false;txt.textContent='Start Chat Session →';return}
+    if (res.status===401){lerr('401 Unauthorized — invalid credentials.');btn.disabled=false;txt.textContent='Start Chat Session →';return}
+    if (!res.ok){lerr('Server error: HTTP '+res.status);btn.disabled=false;txt.textContent='Start Chat Session →';return}
+
+    const data = await res.json();
+    token = t; phone = p;
+    try{localStorage.setItem(SK+'_sess',JSON.stringify({t,p}))}catch(e){}
+
+    // switch to app
+    document.getElementById('loginScreen').classList.add('hidden');
+    setTimeout(()=>document.getElementById('loginScreen').style.display='none',400);
+    document.getElementById('app').classList.add('show');
+    document.getElementById('sessPhone').textContent = p;
+    document.getElementById('tokPrev').textContent = t.slice(0,6)+'…'+t.slice(-4);
+    renderHist();
+
+    addMsg('user','hi',null);
+    addMsg('bot',data.reply_text,{fb:data.fallback_used,time:data.response_time});
+    saveHist({p,q:'hi',a:data.reply_text,fb:data.fallback_used,time:data.response_time,ts:new Date().toISOString()});
+
+  } catch(err) {
+    lerr('Cannot reach server. Is it running? Also check CORS headers.');
+    btn.disabled=false; txt.textContent='Start Chat Session →';
+  }
+}
+
+// ── Send ──
+async function send() {
+  const msg = document.getElementById('mta').value.trim();
+  if (!msg) return;
+  hideE();
+  addMsg('user',msg,null);
+  document.getElementById('mta').value='';
+  document.getElementById('mta').style.height='auto';
+  setLoad(true);
+
+  try {
+    const res = await fetch(API,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({student_phone:phone,message:msg})
+    });
+
+    if(res.status===403){showE('Token expired — please logout and log back in.');setLoad(false);return}
+    if(!res.ok) throw new Error('HTTP '+res.status);
+
+    const d = await res.json();
+    addMsg('bot',d.reply_text,{fb:d.fallback_used,time:d.response_time});
+    saveHist({p:phone,q:msg,a:d.reply_text,fb:d.fallback_used,time:d.response_time,ts:new Date().toISOString()});
+  } catch(err){
+    showE('Request failed: '+err.message);
+  } finally {
+    setLoad(false);
+  }
+}
+
+function qs(t){document.getElementById('mta').value=t;send()}
+
+// ── DOM helpers ──
+function addMsg(role,text,meta){
+  const ec=document.getElementById('emptyChat');if(ec)ec.remove();
+  const c=document.getElementById('msgs');
+  const w=document.createElement('div');w.className='mw '+role;
+  let foot='';
+  if(meta){
+    const b=meta.fb?'<span class="bdg bdg-fb">FALLBACK</span>':'<span class="bdg bdg-ai">AI</span>';
+    foot=`<div class="mfoot">${meta.time||''} ${b}</div>`;
+  }
+  w.innerHTML=`<div class="mwho">${role==='user'?'▸ You':'▸ MUST Bot'}</div><div class="bbl">${esc(text)}</div>${foot}`;
+  c.appendChild(w);c.scrollTop=c.scrollHeight;
+}
+
+function setLoad(on){
+  document.getElementById('sbtn').disabled=on;
+  document.getElementById('trow').classList.toggle('show',on);
+}
+function showE(m){const e=document.getElementById('ebar');e.textContent=m;e.classList.add('show')}
+function hideE(){document.getElementById('ebar').classList.remove('show')}
+function lerr(m){const e=document.getElementById('lerr');e.textContent=m;e.classList.add('show')}
+function clerr(){document.getElementById('lerr').classList.remove('show')}
+
+// ── History ──
+function loadHist(){try{return JSON.parse(localStorage.getItem(SK+'_hist'))||[]}catch{return[]}}
+function saveHist(e){hist.unshift(e);if(hist.length>MAX)hist=hist.slice(0,MAX);try{localStorage.setItem(SK+'_hist',JSON.stringify(hist))}catch(x){}renderHist()}
+function clearLocalHist(){if(!confirm('Clear local history list?'))return;hist=[];try{localStorage.removeItem(SK+'_hist')}catch(e){}renderHist()}
+
+async function clearMemoryAPI(){
+  if(!confirm('Clear server memory for '+phone+'?\n\nThis deletes the bot\'s conversation memory on the server.'))return;
+  const btn=document.getElementById('apiClrBtn');
+  const txt=document.getElementById('apiClrTxt');
+  btn.disabled=true; txt.textContent='Clearing…';
+  try{
+    const encodedPhone=encodeURIComponent(phone);
+    const res=await fetch(`http://127.0.0.1:8001/api/v1/chatbot/memory/${encodedPhone}`,{
+      method:'DELETE',
+      headers:{'Authorization':'Bearer '+token}
+    });
+    if(res.status===403){showE('403 Forbidden — token rejected when clearing memory.');return}
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    // also wipe local
+    hist=[];try{localStorage.removeItem(SK+'_hist')}catch(e){}renderHist();
+    // show success in chat
+    const c=document.getElementById('msgs');
+    const ec=document.getElementById('emptyChat');if(ec)ec.remove();
+    const notice=document.createElement('div');
+    notice.style.cssText='align-self:center;background:rgba(0,255,179,.08);border:1px solid rgba(0,255,179,.2);border-radius:9px;padding:7px 14px;font-size:10px;color:var(--accent);letter-spacing:.06em;animation:mi .26s ease';
+    notice.textContent='✓ Server memory cleared for '+phone;
+    c.appendChild(notice);c.scrollTop=c.scrollHeight;
+    txt.textContent='✓ Memory Cleared';
+    setTimeout(()=>{txt.textContent='🗑 Clear Server Memory';btn.disabled=false},2500);
+  }catch(err){
+    showE('Memory clear failed: '+err.message);
+    txt.textContent='🗑 Clear Server Memory';btn.disabled=false;
+  }
+}
+
+function renderHist(){
+  const l=document.getElementById('hlist');
+  if(!hist.length){l.innerHTML='<div style="padding:18px 12px;font-size:10px;color:var(--text-muted);text-align:center;line-height:1.7">No history yet.<br/>Send a message to start.</div>';return}
+  l.innerHTML=hist.map((h,i)=>`
+    <div class="hi${i===0?' active':''}" onclick="prevHist(${i})">
+      ${i===0?'<div class="hi-dot"></div>':''}
+      <div class="hi-ph">${esc(h.p)}</div>
+      <div class="hi-q">${esc(h.q)}</div>
+      <div class="hi-a">${esc(h.a)}</div>
+      <div class="hi-t">${fmt(h.ts)}</div>
+    </div>`).join('');
+}
+
+function prevHist(i){
+  const h=hist[i];if(!h)return;
+  const c=document.getElementById('msgs');c.innerHTML='';
+  addMsg('user',h.q,null);
+  addMsg('bot',h.a,{fb:h.fb,time:h.time});
+  document.querySelectorAll('.hi').forEach((el,j)=>el.classList.toggle('active',j===i));
+}
+
+function logout(){
+  if(!confirm('End session and return to login?'))return;
+  token='';phone='';
+  try{localStorage.removeItem(SK+'_sess')}catch(e){}
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('msgs').innerHTML='<div class="empty-chat" id="emptyChat"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Send a message to begin</p></div>';
+  document.getElementById('tokenInp').value='';
+  document.getElementById('stepB').style.display='none';
+  document.getElementById('stepA').style.display='block';
+  document.getElementById('sd1').className='sd active';
+  document.getElementById('sd2').className='sd idle';
+  document.getElementById('startTxt').textContent='Start Chat Session →';
+  document.getElementById('startBtn').disabled=false;
+  clerr();
+}
+
+// ── Utils ──
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function fmt(iso){if(!iso)return'';return new Date(iso).toLocaleString('en-PK',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}
+
+// Textarea auto-resize + Enter
+const ta=document.getElementById('mta');
+ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,100)+'px'});
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+document.getElementById('tokenInp').addEventListener('keydown',e=>{if(e.key==='Enter')goToStep2()});
+document.getElementById('phoneInp').addEventListener('keydown',e=>{if(e.key==='Enter')startSession()});
+</script>
+</body>
+</html>
